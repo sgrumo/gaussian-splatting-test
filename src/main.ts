@@ -5,9 +5,8 @@ import { VRButton } from "three/addons/webxr/VRButton.js";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import { LCCRender } from "./sdk/lcc-0.5.0.js";
 
-// const test_lcc_url =
-//   "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/LCC_Results/";
-const test_lcc_url = "http://localhost:5173/lcc/san_giovanni";
+const test_lcc_url =
+  "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/san_giovanni/";
 
 const raycaster = new THREE.Raycaster();
 const COLLISION_DISTANCE = 0.5;
