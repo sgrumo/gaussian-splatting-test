@@ -9,25 +9,18 @@ const test_lcc_url =
   "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/san_giovanni/";
 
 const raycaster = new THREE.Raycaster();
-const COLLISION_DISTANCE = 0.5;
+const COLLISION_DISTANCE = 1;
 
 let lccGroup: THREE.Group | null = null;
 let collisionMeshes: THREE.Mesh[] = [];
 
-const checkCollision = (
-  position: THREE.Vector3,
-  direction: THREE.Vector3
-): boolean => {
+const checkCollision = (position: THREE.Vector3): boolean => {
   if (!lccGroup || collisionMeshes.length === 0) return false;
 
-  raycaster.set(position, direction.clone().normalize());
-  const intersection = LCCRender.raycast(raycaster);
-  console.log(intersection);
-
-  if (intersection) {
-    const distance = position.distanceTo(
-      new THREE.Vector3(intersection.x, intersection.y, intersection.z)
-    );
+  raycaster.set(position, new THREE.Vector3(0, 0, -1));
+  const intersects = raycaster.intersectObjects(collisionMeshes, false);
+  if (intersects.length > 0) {
+    const distance = position.distanceTo(intersects[0].point);
     return distance < COLLISION_DISTANCE;
   }
 
@@ -49,9 +42,8 @@ const getGroundHeight = (position: THREE.Vector3): number | null => {
   raycaster.set(position, downDirection);
 
   const intersects = raycaster.intersectObjects(collisionMeshes, false);
-
   if (intersects.length > 0) {
-    return intersects[0].point.z;
+    return null;
   }
 
   return null;
@@ -73,8 +65,15 @@ const loadLCC = (
       renderer: renderer,
     },
     (mesh: THREE.Group) => {
+      lccGroup = mesh;
       setTimeout(() => {
         extractCollisionMeshes(mesh);
+        console.log("Extracted collision meshes:", collisionMeshes);
+
+        collisionMeshes.forEach((mesh) => {
+          const box = new THREE.BoxHelper(mesh, 0xff0000);
+          scene.add(box);
+        });
       }, 500);
     },
     (percent: number) => {
@@ -207,8 +206,9 @@ const updateCamera = () => {
     const testPosition = newPosition
       .clone()
       .addScaledVector(forwardDirection, CAMERA_SPEED);
-    if (!checkCollision(testPosition, forwardDirection)) {
+    if (!checkCollision(testPosition)) {
       newPosition = testPosition;
+      console.log("forward");
     }
   }
   if (moveBackward) {
@@ -217,16 +217,18 @@ const updateCamera = () => {
       .clone()
       .addScaledVector(backwardDirection, CAMERA_SPEED);
 
-    if (!checkCollision(testPosition, backwardDirection)) {
+    if (!checkCollision(testPosition)) {
       newPosition = testPosition;
+      console.log("backward");
     }
   }
   if (moveRight) {
     const testPosition = newPosition
       .clone()
       .addScaledVector(right, CAMERA_SPEED);
-    if (!checkCollision(testPosition, right)) {
+    if (!checkCollision(testPosition)) {
       newPosition = testPosition;
+      console.log("right");
     }
   }
   if (moveLeft) {
@@ -234,15 +236,31 @@ const updateCamera = () => {
     const testPosition = newPosition
       .clone()
       .addScaledVector(leftDirection, CAMERA_SPEED);
-    if (!checkCollision(testPosition, leftDirection)) {
+    if (!checkCollision(testPosition)) {
       newPosition = testPosition;
+      console.log("left");
     }
   }
   if (moveUp) {
-    newPosition.z += CAMERA_SPEED;
+    const upDir = new THREE.Vector3(0, 0, 1);
+    const testPosition = newPosition
+      .clone()
+      .addScaledVector(upDir, CAMERA_SPEED);
+    if (!checkCollision(testPosition)) {
+      newPosition = testPosition;
+      console.log("up");
+    }
   }
+
   if (moveDown) {
-    newPosition.z -= CAMERA_SPEED;
+    const downDir = new THREE.Vector3(0, 0, -1);
+    const testPosition = newPosition
+      .clone()
+      .addScaledVector(downDir, CAMERA_SPEED);
+    if (!checkCollision(testPosition)) {
+      newPosition = testPosition;
+      console.log("down");
+    }
   }
 
   const groundHeight = getGroundHeight(newPosition);
@@ -255,7 +273,6 @@ const updateCamera = () => {
   }
 
   // visualizeCollision(camera.position, direction, collisionDetected);
-
   camera.position.copy(newPosition);
 
   controls.target.copy(camera.position).addScaledVector(direction, 1);
