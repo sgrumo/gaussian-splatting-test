@@ -10,7 +10,7 @@ const test_lcc_url =
   "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/san_giovanni/";
 
 const raycaster = new THREE.Raycaster();
-const COLLISION_DISTANCE = 1.2;
+const COLLISION_DISTANCE = 1;
 
 let collisionMeshes: THREE.Mesh[] = [];
 
@@ -80,7 +80,6 @@ const camera = new THREE.PerspectiveCamera(
 camera.up.set(0, 0, 1);
 camera.position.set(0, -5, 2.2); // instead of 3
 const minHeight = 2.2; // desired camera height above ground
-const maxStepHeight = 0.8;
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = false;
 controls.dampingFactor = 0.05;
@@ -144,12 +143,6 @@ document.onkeydown = (ev: KeyboardEvent) => {
     case "ArrowDown":
       moveBackward = true;
       break;
-    case "Space":
-      moveUp = true;
-      break;
-    case "ShiftLeft":
-      moveDown = true;
-      break;
   }
 };
 
@@ -198,15 +191,9 @@ const updateCamera = () => {
 
   const groundHeight = getGroundHeight(newPosition);
   if (groundHeight !== null) {
-    const currentZ = camera.position.z;
     const targetZ = groundHeight + minHeight;
-
-    if (targetZ < currentZ - 0.05) {
-      newPosition.z = targetZ; // going down
-    } else if (targetZ > currentZ + maxStepHeight) {
-      return; // block wall
-    } else if (Math.abs(targetZ - currentZ) > 0.05) {
-      newPosition.z = targetZ; // only change Z if it's significant
+    if (Math.abs(targetZ - camera.position.z) < 1.5) {
+      newPosition.z = targetZ;
     }
   }
 
