@@ -99,7 +99,7 @@ LCCRender.load(
     canvas: renderer.domElement,
     renderer: renderer,
   },
-  (group: THREE.Group) => {
+  () => {
     console.log("✅ LCC scene loaded.");
   },
   undefined,
