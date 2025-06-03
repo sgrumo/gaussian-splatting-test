@@ -3,84 +3,62 @@ import "./style.css";
 import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
+import { PLYLoader } from "three/examples/jsm/loaders/PLYLoader.js";
 import { LCCRender } from "./sdk/lcc-0.5.0.js";
 
 const test_lcc_url =
   "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/san_giovanni/";
 
 const raycaster = new THREE.Raycaster();
-const COLLISION_DISTANCE = 1;
+const COLLISION_DISTANCE = 1.2;
 
-let lccGroup: THREE.Group | null = null;
 let collisionMeshes: THREE.Mesh[] = [];
 
 const checkCollision = (position: THREE.Vector3): boolean => {
-  if (!lccGroup || collisionMeshes.length === 0) return false;
+  if (collisionMeshes.length === 0) return false;
 
-  raycaster.set(position, new THREE.Vector3(0, 0, -1));
-  const intersects = raycaster.intersectObjects(collisionMeshes, false);
-  if (intersects.length > 0) {
-    const distance = position.distanceTo(intersects[0].point);
-    return distance < COLLISION_DISTANCE;
+  const directions = [
+    new THREE.Vector3(1, 0, 0), // right
+    new THREE.Vector3(-1, 0, 0), // left
+    new THREE.Vector3(0, 1, 0), // forward
+    new THREE.Vector3(0, -1, 0), // backward
+    new THREE.Vector3(0, 0, -1), // down
+  ];
+
+  for (const dir of directions) {
+    raycaster.set(position.clone(), dir);
+    const intersects = raycaster.intersectObjects(collisionMeshes, false);
+    if (intersects.length > 0 && intersects[0].distance < COLLISION_DISTANCE) {
+      return true;
+    }
   }
 
   return false;
 };
 
-const extractCollisionMeshes = (object: THREE.Object3D) => {
-  object.traverse((child) => {
-    if (child instanceof THREE.Mesh) {
-      collisionMeshes.push(child);
-    }
-  });
-};
-
 const getGroundHeight = (position: THREE.Vector3): number | null => {
-  if (!lccGroup || collisionMeshes.length === 0) return null;
+  if (collisionMeshes.length === 0) return null;
 
-  const downDirection = new THREE.Vector3(0, 0, -1);
-  raycaster.set(position, downDirection);
+  const castOrigin = position.clone().add(new THREE.Vector3(0, 0, 0.5)); // start slightly above
+  raycaster.set(castOrigin, new THREE.Vector3(0, 0, -1));
 
   const intersects = raycaster.intersectObjects(collisionMeshes, false);
-  if (intersects.length > 0) {
-    return null;
-  }
-
-  return null;
+  return intersects.length > 0 ? intersects[0].point.z : null;
 };
-
-const loadLCC = (
-  camera: THREE.PerspectiveCamera,
-  scene: THREE.Scene,
-  renderer: THREE.WebGLRenderer,
-  dataPath: string
-) => {
-  LCCRender.load(
-    {
-      camera,
-      scene,
-      dataPath,
-      renderLib: THREE,
-      canvas: renderer.domElement,
-      renderer: renderer,
-    },
-    (mesh: THREE.Group) => {
-      lccGroup = mesh;
-      setTimeout(() => {
-        extractCollisionMeshes(mesh);
-        console.log("Extracted collision meshes:", collisionMeshes);
-
-        collisionMeshes.forEach((mesh) => {
-          const box = new THREE.BoxHelper(mesh, 0xff0000);
-          scene.add(box);
-        });
-      }, 500);
-    },
-    (percent: number) => {
-      console.log("Lcc object loading: " + (percent * 100).toFixed(1) + "%");
-    },
-    () => {
-      console.error("Lcc object loading failure");
+const loadPLYForCollision = () => {
+  const loader = new PLYLoader();
+  loader.load(
+    "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/san_giovanni/model.ply",
+    (geometry) => {
+      geometry.computeVertexNormals();
+      const material = new THREE.MeshBasicMaterial({ visible: false });
+      const mesh = new THREE.Mesh(geometry, material);
+      scene.add(mesh);
+      mesh.geometry = mesh.geometry.toNonIndexed(); // flatten it
+      mesh.geometry.computeBoundingSphere();
+      mesh.frustumCulled = false;
+      collisionMeshes.push(mesh);
+      console.log("✅ PLY collision mesh loaded.");
     }
   );
 };
@@ -90,7 +68,6 @@ const scene = new THREE.Scene();
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
-
 renderer.setClearColor(0xffffff);
 document.body.appendChild(renderer.domElement);
 
@@ -101,10 +78,11 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 camera.up.set(0, 0, 1);
-camera.position.set(0, -5, 2);
-
+camera.position.set(0, -5, 2.2); // instead of 3
+const minHeight = 2.2; // desired camera height above ground
+const maxStepHeight = 0.8;
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
+controls.enableDamping = false;
 controls.dampingFactor = 0.05;
 controls.target.set(0, 0, 0);
 controls.update();
@@ -112,18 +90,29 @@ controls.update();
 document.body.appendChild(VRButton.createButton(renderer));
 renderer.xr.enabled = true;
 
-loadLCC(camera, scene, renderer, test_lcc_url);
+LCCRender.load(
+  {
+    camera,
+    scene,
+    dataPath: test_lcc_url,
+    renderLib: THREE,
+    canvas: renderer.domElement,
+    renderer: renderer,
+  },
+  (group: THREE.Group) => {
+    console.log("✅ LCC scene loaded.");
+  },
+  undefined,
+  () => console.error("❌ LCC load error")
+);
 
-const handleResize = () => {
-  const { innerWidth, innerHeight } = window;
+loadPLYForCollision();
 
-  camera.aspect = innerWidth / innerHeight;
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
-
-  renderer.setSize(innerWidth, innerHeight);
-};
-
-window.addEventListener("resize", handleResize);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
 
 const CAMERA_SPEED = 0.1;
 let moveForward = false;
@@ -193,87 +182,37 @@ document.onkeyup = (ev: KeyboardEvent) => {
 
 const updateCamera = () => {
   camera.getWorldDirection(direction);
-
-  const forwardDirection = direction.clone();
-  forwardDirection.z = 0;
-  forwardDirection.normalize();
-
-  right.crossVectors(forwardDirection, up).normalize();
+  const forward = direction.clone().setZ(0).normalize();
+  right.crossVectors(forward, up).normalize();
 
   let newPosition = camera.position.clone();
 
-  if (moveForward) {
-    const testPosition = newPosition
-      .clone()
-      .addScaledVector(forwardDirection, CAMERA_SPEED);
-    if (!checkCollision(testPosition)) {
-      newPosition = testPosition;
-      console.log("forward");
-    }
-  }
-  if (moveBackward) {
-    const backwardDirection = forwardDirection.clone().negate();
-    const testPosition = newPosition
-      .clone()
-      .addScaledVector(backwardDirection, CAMERA_SPEED);
-
-    if (!checkCollision(testPosition)) {
-      newPosition = testPosition;
-      console.log("backward");
-    }
-  }
-  if (moveRight) {
-    const testPosition = newPosition
-      .clone()
-      .addScaledVector(right, CAMERA_SPEED);
-    if (!checkCollision(testPosition)) {
-      newPosition = testPosition;
-      console.log("right");
-    }
-  }
-  if (moveLeft) {
-    const leftDirection = right.clone().negate();
-    const testPosition = newPosition
-      .clone()
-      .addScaledVector(leftDirection, CAMERA_SPEED);
-    if (!checkCollision(testPosition)) {
-      newPosition = testPosition;
-      console.log("left");
-    }
-  }
-  if (moveUp) {
-    const upDir = new THREE.Vector3(0, 0, 1);
-    const testPosition = newPosition
-      .clone()
-      .addScaledVector(upDir, CAMERA_SPEED);
-    if (!checkCollision(testPosition)) {
-      newPosition = testPosition;
-      console.log("up");
-    }
-  }
-
-  if (moveDown) {
-    const downDir = new THREE.Vector3(0, 0, -1);
-    const testPosition = newPosition
-      .clone()
-      .addScaledVector(downDir, CAMERA_SPEED);
-    if (!checkCollision(testPosition)) {
-      newPosition = testPosition;
-      console.log("down");
-    }
-  }
+  if (moveForward) newPosition.addScaledVector(forward, CAMERA_SPEED);
+  if (moveBackward)
+    newPosition.addScaledVector(forward.clone().negate(), CAMERA_SPEED);
+  if (moveRight) newPosition.addScaledVector(right, CAMERA_SPEED);
+  if (moveLeft)
+    newPosition.addScaledVector(right.clone().negate(), CAMERA_SPEED);
+  if (moveUp) newPosition.add(new THREE.Vector3(0, 0, CAMERA_SPEED));
+  if (moveDown) newPosition.add(new THREE.Vector3(0, 0, -CAMERA_SPEED));
 
   const groundHeight = getGroundHeight(newPosition);
   if (groundHeight !== null) {
-    const minHeightAboveGround = 1.8;
-    newPosition.z = Math.max(
-      newPosition.z,
-      groundHeight + minHeightAboveGround
-    );
+    const currentZ = camera.position.z;
+    const targetZ = groundHeight + minHeight;
+
+    if (targetZ < currentZ - 0.05) {
+      newPosition.z = targetZ; // going down
+    } else if (targetZ > currentZ + maxStepHeight) {
+      return; // block wall
+    } else if (Math.abs(targetZ - currentZ) > 0.05) {
+      newPosition.z = targetZ; // only change Z if it's significant
+    }
   }
 
-  // visualizeCollision(camera.position, direction, collisionDetected);
-  camera.position.copy(newPosition);
+  if (!checkCollision(newPosition)) {
+    camera.position.copy(newPosition);
+  }
 
   controls.target.copy(camera.position).addScaledVector(direction, 1);
   controls.update();
@@ -285,10 +224,4 @@ const render = () => {
   renderer.render(scene, camera);
 };
 
-const animate = () => {
-  renderer.setAnimationLoop(() => {
-    render();
-  });
-};
-
-animate();
+renderer.setAnimationLoop(render);
