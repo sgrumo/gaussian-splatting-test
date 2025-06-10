@@ -3,38 +3,14 @@ import "./style.css";
 import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
-import { PLYLoader } from "three/examples/jsm/loaders/PLYLoader.js";
 import { LCCRender } from "./sdk/lcc-0.5.0.js";
 
 const test_lcc_url =
   "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/san_giovanni/";
 
 const raycaster = new THREE.Raycaster();
-const COLLISION_DISTANCE = 1;
 
 let collisionMeshes: THREE.Mesh[] = [];
-
-const checkCollision = (position: THREE.Vector3): boolean => {
-  if (collisionMeshes.length === 0) return false;
-
-  const directions = [
-    new THREE.Vector3(1, 0, 0), // right
-    new THREE.Vector3(-1, 0, 0), // left
-    new THREE.Vector3(0, 1, 0), // forward
-    new THREE.Vector3(0, -1, 0), // backward
-    new THREE.Vector3(0, 0, -1), // down
-  ];
-
-  for (const dir of directions) {
-    raycaster.set(position.clone(), dir);
-    const intersects = raycaster.intersectObjects(collisionMeshes, false);
-    if (intersects.length > 0 && intersects[0].distance < COLLISION_DISTANCE) {
-      return true;
-    }
-  }
-
-  return false;
-};
 
 const getGroundHeight = (position: THREE.Vector3): number | null => {
   if (collisionMeshes.length === 0) return null;
@@ -44,23 +20,6 @@ const getGroundHeight = (position: THREE.Vector3): number | null => {
 
   const intersects = raycaster.intersectObjects(collisionMeshes, false);
   return intersects.length > 0 ? intersects[0].point.z : null;
-};
-const loadPLYForCollision = () => {
-  const loader = new PLYLoader();
-  loader.load(
-    "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/san_giovanni/model.ply",
-    (geometry) => {
-      geometry.computeVertexNormals();
-      const material = new THREE.MeshBasicMaterial({ visible: false });
-      const mesh = new THREE.Mesh(geometry, material);
-      scene.add(mesh);
-      mesh.geometry = mesh.geometry.toNonIndexed(); // flatten it
-      mesh.geometry.computeBoundingSphere();
-      mesh.frustumCulled = false;
-      collisionMeshes.push(mesh);
-      console.log("✅ PLY collision mesh loaded.");
-    }
-  );
 };
 
 const scene = new THREE.Scene();
@@ -89,7 +48,7 @@ controls.update();
 document.body.appendChild(VRButton.createButton(renderer));
 renderer.xr.enabled = true;
 
-LCCRender.load(
+const lccObject = LCCRender.load(
   {
     camera,
     scene,
@@ -104,8 +63,6 @@ LCCRender.load(
   undefined,
   () => console.error("❌ LCC load error")
 );
-
-loadPLYForCollision();
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -197,12 +154,27 @@ const updateCamera = () => {
     }
   }
 
-  if (!checkCollision(newPosition)) {
-    camera.position.copy(newPosition);
-  }
+  if (lccObject.hasCollision()) {
+    const center = {
+      x: newPosition.x,
+      y: newPosition.y,
+      z: newPosition.z,
+    };
+    const radius = 1;
+    const noDelta = true;
+    let intersectResult = lccObject.intersectsSphere({
+      center,
+      radius,
+      noDelta,
+    });
+    if (!intersectResult.hit) {
+      console.log("Collision occurs, delta: ", intersectResult.delta);
+      camera.position.copy(newPosition);
 
-  controls.target.copy(camera.position).addScaledVector(direction, 1);
-  controls.update();
+      controls.target.copy(camera.position).addScaledVector(direction, 1);
+      controls.update();
+    }
+  }
 };
 
 const render = () => {
