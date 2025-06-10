@@ -168,7 +168,6 @@ const updateCamera = () => {
       noDelta,
     });
     if (!intersectResult.hit) {
-      console.log("Collision occurs, delta: ", intersectResult.delta);
       camera.position.copy(newPosition);
 
       controls.target.copy(camera.position).addScaledVector(direction, 1);
