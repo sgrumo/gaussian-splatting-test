@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@pmndrs/vanilla':
+        specifier: ^1.20.5
+        version: 1.20.5(three@0.176.0)
       three:
         specifier: ^0.176.0
         version: 0.176.0
@@ -183,6 +186,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@pmndrs/vanilla@1.20.5':
+    resolution: {integrity: sha512-6u0d5acTgsQrqynf+n46gNLYUhp/mbCJGvhFmxGlwv+SZyRAjQshi16tX11mbYwOowD2lXGugL/0CqFPEKMA3A==}
+    peerDependencies:
+      three: '>=0.137'
+
   '@rollup/rollup-android-arm-eabi@4.40.2':
     resolution: {integrity: sha512-JkdNEq+DFxZfUwxvB58tHMHBHVgX23ew41g1OQinthJ+ryhdRk67O31S7sYw8u2lTjHUPFxwar07BBt1KHp/hg==}
     cpu: [arm]
@@ -324,6 +332,9 @@ packages:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
+
+  glsl-noise@0.0.0:
+    resolution: {integrity: sha512-b/ZCF6amfAUb7dJM/MxRs7AetQEahYzJ8PtgfrmEdtw6uyGOr+ZSGtgjFm6mfsBkxJ4d2W7kg+Nlqzqvn3Bc0w==}
 
   meshoptimizer@0.18.1:
     resolution: {integrity: sha512-ZhoIoL7TNV4s5B6+rx5mC//fw8/POGyNxS/DZyCJeiZ12ScLfVwRE/GfsxwiTkMYYD5DmK2/JXnEVXqL4rF+Sw==}
@@ -487,6 +498,11 @@ snapshots:
   '@esbuild/win32-x64@0.25.4':
     optional: true
 
+  '@pmndrs/vanilla@1.20.5(three@0.176.0)':
+    dependencies:
+      glsl-noise: 0.0.0
+      three: 0.176.0
+
   '@rollup/rollup-android-arm-eabi@4.40.2':
     optional: true
 
@@ -605,6 +621,8 @@ snapshots:
 
   fsevents@2.3.3:
     optional: true
+
+  glsl-noise@0.0.0: {}
 
   meshoptimizer@0.18.1: {}
 

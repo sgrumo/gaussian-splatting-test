@@ -1,12 +1,9 @@
 import "./style.css";
 
+import { Splat, SplatLoader } from "@pmndrs/vanilla";
 import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
-import { LCCRender } from "./sdk/lcc-0.5.0.js";
-
-const test_lcc_url =
-  "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/san_giovanni/";
 
 const raycaster = new THREE.Raycaster();
 
@@ -15,7 +12,7 @@ let collisionMeshes: THREE.Mesh[] = [];
 const getGroundHeight = (position: THREE.Vector3): number | null => {
   if (collisionMeshes.length === 0) return null;
 
-  const castOrigin = position.clone().add(new THREE.Vector3(0, 0, 0.5)); // start slightly above
+  const castOrigin = position.clone().add(new THREE.Vector3(0, 0, 0.5));
   raycaster.set(castOrigin, new THREE.Vector3(0, 0, -1));
 
   const intersects = raycaster.intersectObjects(collisionMeshes, false);
@@ -34,16 +31,26 @@ renderer.setClearColor(0xffffff);
 document.body.appendChild(renderer.domElement);
 
 const camera = new THREE.PerspectiveCamera(
-  45,
+  75,
   window.innerWidth / window.innerHeight,
-  1,
+  0.1,
   1000
 );
-camera.up.set(0, 0, 1);
-camera.position.set(0, -5, 2.2);
+camera.up.set(0, 1, 0);
+camera.position.set(5, 5, 3);
 
-const minHeight = 2.2; // desired camera height above ground
+const minHeight = 2.2;
 const controls = new OrbitControls(camera, renderer.domElement);
+
+const loader = new SplatLoader(renderer);
+
+const sceneSplat = await loader.loadAsync(
+  `assets/sangiovanni-cut3-compressed.splat`
+);
+
+const shoe1 = new Splat(sceneSplat, camera, { alphaTest: 0.1 });
+shoe1.position.set(0, 0, 0);
+scene.add(shoe1);
 
 controls.enableDamping = false;
 controls.dampingFactor = 0.05;
@@ -53,23 +60,6 @@ controls.update();
 document.body.appendChild(VRButton.createButton(renderer));
 renderer.xr.enabled = true;
 renderer.xr.setFoveation(0.5);
-
-const lccObject = LCCRender.load(
-  {
-    camera,
-    scene,
-    dataPath: test_lcc_url,
-    renderLib: THREE,
-    canvas: renderer.domElement,
-    renderer: renderer,
-    useLoadingEffect: true,
-  },
-  () => {
-    console.log("✅ LCC scene loaded.");
-  },
-  undefined,
-  () => console.error("❌ LCC load error")
-);
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -174,26 +164,26 @@ const updateCamera = () => {
     }
   }
 
-  if (lccObject.hasCollision()) {
-    const center = {
-      x: newPosition.x,
-      y: newPosition.y,
-      z: newPosition.z,
-    };
-    const radius = 1;
-    const noDelta = true;
-    let intersectResult = lccObject.intersectsSphere({
-      center,
-      radius,
-      noDelta,
-    });
-    if (!intersectResult.hit) {
-      camera.position.copy(newPosition);
+  // if (lccObject.hasCollision()) {
+  // const center = {
+  //   x: newPosition.x,
+  //   y: newPosition.y,
+  //   z: newPosition.z,
+  // };
+  // const radius = 1;
+  // const noDelta = true;
+  // let intersectResult = lccObject.intersectsSphere({
+  //   center,
+  //   radius,
+  //   noDelta,
+  // });
+  // if (!intersectResult.hit) {
+  camera.position.copy(newPosition);
 
-      controls.target.copy(camera.position).addScaledVector(direction, 1);
-      controls.update();
-    }
-  }
+  controls.target.copy(camera.position).addScaledVector(direction, 1);
+  controls.update();
+  // }
+  // }
 };
 
 // renderer.xr.addEventListener("sessionstart", () => {
@@ -246,7 +236,7 @@ renderer.xr.addEventListener("sessionend", () => {
 
 const render = () => {
   updateCamera();
-  LCCRender.update();
+  // LCCRender.update();
   renderer.render(scene, camera);
 };
 
