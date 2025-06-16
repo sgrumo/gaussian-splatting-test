@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@mkkellogg/gaussian-splats-3d':
+        specifier: ^0.4.7
+        version: 0.4.7(three@0.176.0)
       '@pmndrs/vanilla':
         specifier: ^1.20.5
         version: 1.20.5(three@0.176.0)
@@ -185,6 +188,11 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@mkkellogg/gaussian-splats-3d@0.4.7':
+    resolution: {integrity: sha512-0vy9/i9sJLFH/v3WJZ4axCsqjkToe8UsV3xY7bvK5EUC0akiRsWZODoCiSzpxhTLNyzSKTsyQKozIFeNA5RWRA==}
+    peerDependencies:
+      three: '>=0.160.0'
 
   '@pmndrs/vanilla@1.20.5':
     resolution: {integrity: sha512-6u0d5acTgsQrqynf+n46gNLYUhp/mbCJGvhFmxGlwv+SZyRAjQshi16tX11mbYwOowD2lXGugL/0CqFPEKMA3A==}
@@ -497,6 +505,10 @@ snapshots:
 
   '@esbuild/win32-x64@0.25.4':
     optional: true
+
+  '@mkkellogg/gaussian-splats-3d@0.4.7(three@0.176.0)':
+    dependencies:
+      three: 0.176.0
 
   '@pmndrs/vanilla@1.20.5(three@0.176.0)':
     dependencies:

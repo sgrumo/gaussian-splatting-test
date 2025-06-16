@@ -1,6 +1,6 @@
 import "./style.css";
 
-import { Splat, SplatLoader } from "@pmndrs/vanilla";
+import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
 import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
@@ -31,33 +31,52 @@ renderer.setClearColor(0xffffff);
 document.body.appendChild(renderer.domElement);
 
 const camera = new THREE.PerspectiveCamera(
-  75,
+  70,
   window.innerWidth / window.innerHeight,
-  0.1,
-  1000,
+  0.2,
+  500
 );
-camera.up.set(0, 1, 0);
-camera.position.set(5, 5, 3);
+camera.up.set(0, -1, 0);
+camera.position.set(0, 0, -20);
 
 const minHeight = 2.2;
 const controls = new OrbitControls(camera, renderer.domElement);
 
-const loader = new SplatLoader(renderer);
 const sceneUrl =
-  "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/sangiovanni-cut3-compressed.splat";
+  "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/sangiovanni.ksplat";
 
-loader.loadAsync(sceneUrl).then((sceneSplat) => {
-  const shoe1 = new Splat(sceneSplat, camera, { alphaTest: 0.1 });
-  shoe1.position.set(0, 0, 0);
-  scene.add(shoe1);
+// loader.loadAsync(sceneUrl).then((sceneSplat) => {
+//   const shoe1 = new Splat(sceneSplat, camera, { alphaTest: 0.1 });
+//   shoe1.position.set(0, 0, 0);
+//   scene.add(shoe1);
 
-  controls.enableDamping = false;
-  controls.dampingFactor = 0.05;
-  controls.target.set(0, 0, 0);
-  controls.update();
+//   controls.enableDamping = false;
+//   controls.dampingFactor = 0.05;
+//   controls.target.set(0, 0, 0);
+//   controls.update();
 
-  renderer.setAnimationLoop(render);
+//   renderer.setAnimationLoop(render);
+// });
+
+const viewer = new GaussianSplats3D.Viewer({
+  renderer: renderer,
+  selfDrivenMode: true,
+  threeScene: scene,
+  camera: camera,
+  sphericalHarmonicsDegree: 0,
+  useBuiltInControls: false,
+  rootElement: document.body,
 });
+
+viewer
+  .addSplatScene(sceneUrl, {
+    streamView: true,
+    showLoadingUI: true,
+    splatAlphaRemovalThreshold: 25,
+  })
+  .then(() => {
+    viewer.start();
+  });
 
 document.body.appendChild(VRButton.createButton(renderer));
 renderer.xr.enabled = true;
@@ -160,6 +179,7 @@ const setupVRControllers = () => {
     }
   });
 };
+
 const updateVRInput = () => {
   if (!renderer.xr.isPresenting) return;
 
@@ -252,7 +272,7 @@ const updateCamera = () => {
     if (Math.abs(vrMovement.turn) > 0.8) {
       const turnAmount = vrMovement.turn > 0 ? -Math.PI / 6 : Math.PI / 6; // 30 degrees
       const currentRotation = new THREE.Euler().setFromQuaternion(
-        camera.quaternion,
+        camera.quaternion
       );
       currentRotation.z += turnAmount;
       camera.setRotationFromEuler(currentRotation);

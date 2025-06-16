@@ -15,6 +15,7 @@
     "vite": "^6.3.5"
   },
   "dependencies": {
+    "@mkkellogg/gaussian-splats-3d": "^0.4.7",
     "@pmndrs/vanilla": "^1.20.5",
     "three": "^0.176.0",
     "tweakpane": "^4.0.5"
