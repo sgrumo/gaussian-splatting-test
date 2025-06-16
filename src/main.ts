@@ -34,7 +34,7 @@ const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
   0.1,
-  1000
+  1000,
 );
 camera.up.set(0, 1, 0);
 camera.position.set(5, 5, 3);
@@ -43,10 +43,9 @@ const minHeight = 2.2;
 const controls = new OrbitControls(camera, renderer.domElement);
 
 const loader = new SplatLoader(renderer);
-
-const sceneSplat = await loader.loadAsync(
-  `assets/sangiovanni-cut3-compressed.splat`
-);
+const sceneUrl =
+  "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/sangiovanni-cut3-compressed.splat";
+const sceneSplat = await loader.loadAsync(sceneUrl);
 
 const shoe1 = new Splat(sceneSplat, camera, { alphaTest: 0.1 });
 shoe1.position.set(0, 0, 0);
@@ -82,7 +81,6 @@ let moveDown = false;
 
 const direction = new THREE.Vector3();
 const right = new THREE.Vector3();
-const up = new THREE.Vector3(0, 0, 1);
 
 document.onkeydown = (ev: KeyboardEvent) => {
   switch (ev.code) {
@@ -101,6 +99,12 @@ document.onkeydown = (ev: KeyboardEvent) => {
     case "KeyS":
     case "ArrowDown":
       moveBackward = true;
+      break;
+    case "Space":
+      moveUp = true;
+      break;
+    case "ShiftLeft":
+      moveDown = true;
       break;
   }
 };
@@ -142,8 +146,11 @@ const updateCamera = () => {
   }
 
   camera.getWorldDirection(direction);
-  const forward = direction.clone().setZ(0).normalize();
-  right.crossVectors(forward, up).normalize();
+
+  const forward = direction.clone().setY(0).normalize();
+  const worldUp = new THREE.Vector3(0, 1, 0);
+
+  right.crossVectors(forward, worldUp).normalize();
 
   let newPosition = camera.position.clone();
 
