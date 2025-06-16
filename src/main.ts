@@ -45,16 +45,19 @@ const controls = new OrbitControls(camera, renderer.domElement);
 const loader = new SplatLoader(renderer);
 const sceneUrl =
   "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/sangiovanni-cut3-compressed.splat";
-const sceneSplat = await loader.loadAsync(sceneUrl);
 
-const shoe1 = new Splat(sceneSplat, camera, { alphaTest: 0.1 });
-shoe1.position.set(0, 0, 0);
-scene.add(shoe1);
+loader.loadAsync(sceneUrl).then((sceneSplat) => {
+  const shoe1 = new Splat(sceneSplat, camera, { alphaTest: 0.1 });
+  shoe1.position.set(0, 0, 0);
+  scene.add(shoe1);
 
-controls.enableDamping = false;
-controls.dampingFactor = 0.05;
-controls.target.set(0, 0, 0);
-controls.update();
+  controls.enableDamping = false;
+  controls.dampingFactor = 0.05;
+  controls.target.set(0, 0, 0);
+  controls.update();
+
+  renderer.setAnimationLoop(render);
+});
 
 document.body.appendChild(VRButton.createButton(renderer));
 renderer.xr.enabled = true;
