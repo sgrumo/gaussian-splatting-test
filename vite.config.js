@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
     server: {
-        allowedHosts: ['cdf7-79-61-135-187.ngrok-free.app'],
+        allowedHosts: ['quinckdev.com'],
         headers: {
             'Cross-Origin-Embedder-Policy': 'require-corp',
             'Cross-Origin-Opener-Policy': 'same-origin',
