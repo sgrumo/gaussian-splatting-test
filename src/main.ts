@@ -1,6 +1,7 @@
 import "./style.css";
 
 import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
+import * as THREE from "three";
 const path = "assets/tile1.splat";
 
 const conf = {
@@ -46,3 +47,36 @@ viewer
     viewer.start();
     console.log("Press 'I' key to toggle debug info");
   });
+
+const uiGroup = new THREE.Group();
+
+const createVRButton = (text: string, position: THREE.Vector3) => {
+  // Create a simple 3D button
+  const buttonGeometry = new THREE.BoxGeometry(1, 0.3, 0.1);
+  const buttonMaterial = new THREE.MeshBasicMaterial({ color: 0x4caf50 });
+  const button = new THREE.Mesh(buttonGeometry, buttonMaterial);
+  button.position.copy(position);
+
+  // Add text (you'd need a text geometry library for proper text)
+  const textGeometry = new THREE.PlaneGeometry(0.8, 0.2);
+  const textMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+  const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+  textMesh.position.z = 0.06;
+  button.add(textMesh);
+
+  return button;
+};
+
+const nextButton = createVRButton("Next Room", new THREE.Vector3(2, 1.5, -3));
+// nextButton.userData.onClick = () => this.nextScene();
+uiGroup.add(nextButton);
+
+// Previous room button
+const prevButton = createVRButton(
+  "Previous Room",
+  new THREE.Vector3(-2, 1.5, -3)
+);
+// prevButton.userData.onClick = () => this.previousScene();
+uiGroup.add(prevButton);
+
+viewer.threeScene.add(uiGroup);
