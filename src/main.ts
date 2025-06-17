@@ -2,25 +2,26 @@ import "./style.css";
 
 import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
 import * as THREE from "three";
-const path = "assets/tile1.splat";
+const path =
+  "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/tile1.splat";
 
-const conf = {
-  "tile1.splat": {
-    cameraUp: [0, 1, 0],
-    initialCameraPosition: [-8, 4, -4],
-    initialCameraLookAt: [-2, 3, -10],
-  },
-  "tile2.splat": {
-    cameraUp: [0, 1, 0],
-    initialCameraPosition: [-8, 4, -4],
-    initialCameraLookAt: [-2, 3, -10],
-  },
-  "tile3.splat": {
-    cameraUp: [0, 1, 0],
-    initialCameraPosition: [-8, 4, -4],
-    initialCameraLookAt: [-2, 3, -10],
-  },
-};
+// const conf = {
+//   "tile1.splat": {
+//     cameraUp: [0, 1, 0],
+//     initialCameraPosition: [-8, 4, -4],
+//     initialCameraLookAt: [-2, 3, -10],
+//   },
+//   "tile2.splat": {
+//     cameraUp: [0, 1, 0],
+//     initialCameraPosition: [-8, 4, -4],
+//     initialCameraLookAt: [-2, 3, -10],
+//   },
+//   "tile3.splat": {
+//     cameraUp: [0, 1, 0],
+//     initialCameraPosition: [-8, 4, -4],
+//     initialCameraLookAt: [-2, 3, -10],
+//   },
+// };
 
 const viewer = new GaussianSplats3D.Viewer({
   cameraUp: [0, 1, 0],
@@ -50,7 +51,7 @@ viewer
 
 const uiGroup = new THREE.Group();
 
-const createVRButton = (text: string, position: THREE.Vector3) => {
+const createVRButton = (_text: string, position: THREE.Vector3) => {
   // Create a simple 3D button
   const buttonGeometry = new THREE.BoxGeometry(1, 0.3, 0.1);
   const buttonMaterial = new THREE.MeshBasicMaterial({ color: 0x4caf50 });

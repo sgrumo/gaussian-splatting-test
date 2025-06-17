@@ -156,21 +156,21 @@ let vrMovement = {
   turn: 0,
 };
 
-const setupVRControllers = () => {
-  const session = renderer.xr.getSession();
+// const setupVRControllers = () => {
+//   const session = renderer.xr.getSession();
 
-  if (!session) return;
+//   if (!session) return;
 
-  session.addEventListener("inputsourceschange", () => {
-    vrControllers = [];
+//   session.addEventListener("inputsourceschange", () => {
+//     vrControllers = [];
 
-    for (const inputSource of session.inputSources) {
-      if (inputSource.gamepad) {
-        vrControllers.push(inputSource);
-      }
-    }
-  });
-};
+//     for (const inputSource of session.inputSources) {
+//       if (inputSource.gamepad) {
+//         vrControllers.push(inputSource);
+//       }
+//     }
+//   });
+// };
 
 const updateVRInput = () => {
   if (!renderer.xr.isPresenting) return;
