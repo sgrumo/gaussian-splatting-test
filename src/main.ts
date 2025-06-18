@@ -1,72 +1,77 @@
 import "./style.css";
 
-import * as GaussianSplats3D from "@mkkellogg/gaussian-splats-3d";
+import {
+  SparkRenderer,
+  SplatEdit,
+  SplatEditRgbaBlendMode,
+  SplatEditSdf,
+  SplatEditSdfType,
+  SplatMesh,
+  XrHands,
+} from "@sparkjsdev/spark";
 import * as THREE from "three";
+import { VRButton } from "three/addons/webxr/VRButton.js";
+import { OrbitControls } from "three/examples/jsm/Addons.js";
+
 const path =
   "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/tile1.ksplat";
 
 const scene = new THREE.Scene();
-
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-  powerPreference: "high-performance",
-});
-
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
-renderer.setClearColor(0xffffff);
-renderer.xr.enabled = true;
-renderer.xr.setFoveation(0.5);
-
-document.body.appendChild(renderer.domElement);
-
 const camera = new THREE.PerspectiveCamera(
-  70,
+  60,
   window.innerWidth / window.innerHeight,
-  0.2,
-  500
+  0.1,
+  1000
 );
 
-camera.position.set(-8, 4, -4);
-const worldUp = new THREE.Vector3(0, 1, 0);
-camera.up.copy(worldUp);
-camera.lookAt(new THREE.Vector3(-2, 3, -10));
+camera.position.set(0, 0, 30);
 
-// const controls = new OrbitControls(camera, renderer.domElement);
+const renderer = new THREE.WebGLRenderer({
+  antialias: false,
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
-const viewer = new GaussianSplats3D.Viewer({
-  // cameraUp: [0, 1, 0],
-  // initialCameraPosition: [-8, 4, -4],
-  // initialCameraLookAt: [-2, 3, -10],
-  renderer: renderer,
-  camera: camera,
-  sphericalHarmonicsDegree: 2,
-  splatAlphaRemovalThreshold: 5,
-  dynamicScene: true,
-  webXRSessionInit: {
-    optionalFeatures: ["local-floor", "bounded-floor", "hand-tracking"],
-    requiredFeatures: ["local-floor"],
-  },
-  enableSIMDInSort: true,
-  showLoadingUI: true,
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.update();
+
+const localFrame = new THREE.Group();
+scene.add(localFrame);
+
+const spark = new SparkRenderer({ renderer, maxStdDev: Math.sqrt(5) });
+localFrame.add(spark);
+localFrame.add(camera);
+
+const splatMesh = new SplatMesh({ url: path });
+splatMesh.quaternion.set(1, 0, 0, 0);
+splatMesh.scale.setScalar(0.5);
+scene.add(splatMesh);
+
+const vrButton = VRButton.createButton(renderer, {
+  optionalFeatures: ["hand-tracking"],
 });
 
-viewer
-  .addSplatScene(path, {
-    progressiveLoad: false,
-    splatAlphaRemovalThreshold: 5,
-    rotation: [1, 0, 0, 0],
-  })
-  .then(() => {
-    viewer.start();
-    console.log("Press 'I' key to toggle debug info");
-  });
+let xrHands: XrHands | null = null;
+if (vrButton) {
+  // WebXR is available, so show the button
+  document.body.appendChild(vrButton);
 
-const render = () => {
-  renderer.render(scene, camera);
-  viewer.update();
-  viewer.render(renderer);
-};
+  xrHands = new XrHands();
+  const handMesh = xrHands.makeGhostMesh();
+  handMesh.editable = false;
+  localFrame.add(handMesh);
+}
+
+const edit = new SplatEdit({
+  rgbaBlendMode: SplatEditRgbaBlendMode.ADD_RGBA,
+  sdfSmooth: 0.02,
+  softEdge: 0.02,
+});
+
+localFrame.add(edit);
+const sdfs = new Map();
+
+let lastCameraPos = new THREE.Vector3(0, 0, 0);
 
 window.addEventListener("resize", () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -74,4 +79,81 @@ window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-renderer.setAnimationLoop(render);
+document.body.appendChild(renderer.domElement);
+
+renderer.setAnimationLoop((time: number, xrFrame: XRFrame) => {
+  if (lastCameraPos.distanceTo(camera.position) > 0.5) {
+    localFrame.position.copy(camera.position).multiplyScalar(-1);
+  }
+  lastCameraPos.copy(camera.position);
+
+  if (xrHands) {
+    // Updates the xrHands object with coordinates
+    // and also updates ghost mesh
+    xrHands.update({ xr: renderer.xr, xrFrame });
+
+    // Create interactor SDFs for each hand tip
+    for (const hand of ["left", "right"]) {
+      for (const [index, tip] of ["t3", "i4", "m4", "r4", "p4"].entries()) {
+        const key = `${hand}-${tip}`;
+        if (!sdfs.has(key)) {
+          const sdf = new SplatEditSdf({
+            type: SplatEditSdfType.SPHERE,
+            radius: 0.03,
+            color: new THREE.Color(
+              index % 5 < 3 ? 1 : 0,
+              (index % 5) % 2,
+              index % 5 > 1 ? 1 : 0
+            ),
+            opacity: 0,
+          });
+          sdfs.set(key, sdf);
+        }
+
+        const sdf = sdfs.get(key);
+        sdf.displace.set(
+          0.01 * Math.sin(time * 0.007 + index * 1),
+          0.01 * Math.sin(time * 0.002 + index * 2),
+          0.01 * Math.sin(time * 0.009 + index * 3)
+        );
+
+        if (xrHands.hands[hand] && xrHands.hands[hand][tip]) {
+          // Make the SDF follow the hand tips
+          sdf.position.copy(xrHands.hands[hand][tip].position);
+          edit.add(sdf);
+        } else {
+          // Remove the SDF when the hand is not detected
+          edit.remove(sdf);
+        }
+      }
+    }
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+});
+
+// document.body.appendChild(renderer.domElement);
+// document.body.appendChild(VRButton.createButton(renderer));
+
+renderer.xr.enabled = true;
+renderer.xr.setReferenceSpaceType("local");
+renderer.xr.setFoveation(1);
+
+// const splat = new SplatMesh({ url: path });
+// splat.quaternion.set(1, 0, 0, 0);
+// splat.position.set(0, 0, 0);
+// scene.add(splat);
+
+// const NumFrames = 20;
+// const UpdateInterval = 1000 / NumFrames;
+// let lastUpdateTime = 0;
+
+// renderer.setAnimationLoop(() => {
+//   const now = performance.now();
+//   if (now - lastUpdateTime < UpdateInterval) return;
+//   lastUpdateTime = now;
+
+//   renderer.render(scene, camera);
+//   controls.update();
+// });

@@ -14,6 +14,9 @@ importers:
       '@pmndrs/vanilla':
         specifier: ^1.20.5
         version: 1.20.5(three@0.176.0)
+      '@sparkjsdev/spark':
+        specifier: ^0.1.3
+        version: 0.1.3
       three:
         specifier: ^0.176.0
         version: 0.176.0
@@ -299,6 +302,9 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@sparkjsdev/spark@0.1.3':
+    resolution: {integrity: sha512-kjqhTXeuIF2jw63S82dXxmPLRGC6ugua8ZrJ5eQnyRov2augj8yvP7LQkJuKV4Ga6UIAqkqMiM6yHH+f7XkKsw==}
+
   '@tweakpane/core@2.0.5':
     resolution: {integrity: sha512-punBgD5rKCF5vcNo6BsSOXiDR/NSs9VM7SG65QSLJIxfRaGgj54ree9zQW6bO3pNFf3AogiGgaNODUVQRk9YqQ==}
 
@@ -574,6 +580,10 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.40.2':
     optional: true
+
+  '@sparkjsdev/spark@0.1.3':
+    dependencies:
+      fflate: 0.8.2
 
   '@tweakpane/core@2.0.5': {}
 
