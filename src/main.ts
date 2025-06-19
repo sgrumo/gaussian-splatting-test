@@ -56,7 +56,7 @@ scene.add(splatMesh);
 
 const vrButton = VRButton.createButton(renderer, {
   optionalFeatures: ["hand-tracking"],
-  requiredFeatures: ["local-floor", "bounded-floor"],
+  requiredFeatures: ["local-floor"],
 });
 
 let xrHands: XrHands | null = null;
