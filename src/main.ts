@@ -1,6 +1,7 @@
 import "./style.css";
 
 import {
+  SparkControls,
   SparkRenderer,
   SplatEdit,
   SplatEditRgbaBlendMode,
@@ -11,7 +12,6 @@ import {
 } from "@sparkjsdev/spark";
 import * as THREE from "three";
 import { VRButton } from "three/addons/webxr/VRButton.js";
-import { OrbitControls } from "three/examples/jsm/Addons.js";
 
 const path =
   "https://quinck-open.s3.eu-west-1.amazonaws.com/gaussian-splatting/tile1.ksplat";
@@ -24,7 +24,9 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
-camera.position.set(0, 0, 30);
+camera.up.set(0, 1, 0);
+camera.lookAt(0, 0, 0);
+camera.position.set(-7, 5, -5);
 
 const renderer = new THREE.WebGLRenderer({
   antialias: false,
@@ -32,8 +34,9 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.update();
+const controls = new SparkControls({
+  canvas: renderer.domElement,
+});
 
 const localFrame = new THREE.Group();
 scene.add(localFrame);
@@ -42,13 +45,18 @@ const spark = new SparkRenderer({ renderer, maxStdDev: Math.sqrt(5) });
 localFrame.add(spark);
 localFrame.add(camera);
 
-const splatMesh = new SplatMesh({ url: path });
+const splatMesh = new SplatMesh({
+  url: path,
+});
+
 splatMesh.quaternion.set(1, 0, 0, 0);
-splatMesh.scale.setScalar(0.5);
+splatMesh.scale.setScalar(1);
+
 scene.add(splatMesh);
 
 const vrButton = VRButton.createButton(renderer, {
   optionalFeatures: ["hand-tracking"],
+  requiredFeatures: ["local-floor", "bounded-floor"],
 });
 
 let xrHands: XrHands | null = null;
@@ -129,16 +137,16 @@ renderer.setAnimationLoop((time: number, xrFrame: XRFrame) => {
     }
   }
 
-  controls.update();
   renderer.render(scene, camera);
+  controls.update(camera);
 });
 
 // document.body.appendChild(renderer.domElement);
 // document.body.appendChild(VRButton.createButton(renderer));
 
-renderer.xr.enabled = true;
-renderer.xr.setReferenceSpaceType("local");
-renderer.xr.setFoveation(1);
+// renderer.xr.enabled = true;
+// renderer.xr.setReferenceSpaceType("local");
+// renderer.xr.setFoveation(1);
 
 // const splat = new SplatMesh({ url: path });
 // splat.quaternion.set(1, 0, 0, 0);
