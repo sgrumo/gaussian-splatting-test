@@ -1,7 +1,6 @@
 import "./style.css";
 
 import {
-  SparkControls,
   SparkRenderer,
   SplatEdit,
   SplatEditRgbaBlendMode,
@@ -24,9 +23,9 @@ const camera = new THREE.PerspectiveCamera(
   1000
 );
 
-camera.up.set(0, 1, 0);
-camera.lookAt(0, 0, 0);
-camera.position.set(-7, 5, -5);
+// camera.up.set(0, 1, 0);
+// camera.lookAt(0, 0, 0);
+// camera.position.set(-7, 5, -5);
 
 const renderer = new THREE.WebGLRenderer({
   antialias: false,
@@ -34,9 +33,9 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
-const controls = new SparkControls({
-  canvas: renderer.domElement,
-});
+// const controls = new SparkControls({
+//   canvas: renderer.domElement,
+// });
 
 const localFrame = new THREE.Group();
 scene.add(localFrame);
@@ -56,7 +55,6 @@ scene.add(splatMesh);
 
 const vrButton = VRButton.createButton(renderer, {
   optionalFeatures: ["hand-tracking"],
-  requiredFeatures: ["local-floor"],
 });
 
 let xrHands: XrHands | null = null;
@@ -138,7 +136,7 @@ renderer.setAnimationLoop((time: number, xrFrame: XRFrame) => {
   }
 
   renderer.render(scene, camera);
-  controls.update(camera);
+  // controls.update(camera);
 });
 
 // document.body.appendChild(renderer.domElement);
